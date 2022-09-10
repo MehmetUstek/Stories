@@ -25,3 +25,7 @@ doc/api/
 
 .flutter-plugins
 .flutter-plugins-dependencies
+.idea/*
+ios/.DS_Store
+ios/Runner/.DS_Store
+.DS_Store
