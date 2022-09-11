@@ -56,6 +56,7 @@ class _StoryScreenState extends State<StoryScreen>
   List<Story>? allStories = <Story>[];
   late User currentUser;
   int _userIndex = 0;
+  late DateTime currentTime;
 
   @override
   void initState() {
@@ -81,17 +82,12 @@ class _StoryScreenState extends State<StoryScreen>
         _animController.stop();
         _animController.reset();
         setState(() {
-          if (_currentIndex + 1 < currentStories!.length) {
-            _currentIndex += 1;
-            _loadStory(story: currentStories![_currentIndex]);
+          if (currentUser.currentStoryGroupIndex + 1 < currentStories!.length) {
+            currentUser.currentStoryGroupIndex += 1;
+            _loadStory(
+                story: currentStories![currentUser.currentStoryGroupIndex]);
           } else {
-            // Out of bounds - loop story
-            // You can also Navigator.of(context).pop() here
-            _currentIndex = 0;
-            _userIndex++;
-            currentUser = widget.users[_userIndex];
-            currentStories = currentUser.userStories;
-            _loadStory(story: currentStories![_currentIndex]);
+            nextUserStory();
           }
         });
       }
@@ -108,11 +104,14 @@ class _StoryScreenState extends State<StoryScreen>
 
   @override
   Widget build(BuildContext context) {
-    final Story story = currentStories![_currentIndex];
+    final Story story = currentStories![currentUser.currentStoryGroupIndex];
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
         onTapDown: (details) => _onTapDown(details, story),
+        onTapUp: (details) => _onTapUp(details, story),
+        // onHorizontalDragDown: (details) => _onDragDown(details, story),
+        onPanStart: (details) => _onPanStart(details, story),
         child: Stack(
           children: <Widget>[
             PageView.builder(
@@ -158,7 +157,7 @@ class _StoryScreenState extends State<StoryScreen>
                             AnimatedBar(
                               animController: _animController,
                               position: i,
-                              currentIndex: _currentIndex,
+                              currentIndex: currentUser.currentStoryGroupIndex,
                             ),
                           );
                         })
@@ -181,39 +180,98 @@ class _StoryScreenState extends State<StoryScreen>
     );
   }
 
-  void _onTapDown(TapDownDetails details, Story story) {
+  void nextUserStory() {
+    // currentUser.currentStoryGroupIndex = _currentIndex;
+    _currentIndex = 0;
+    _userIndex++;
+    currentUser = widget.users[_userIndex];
+    currentStories = currentUser.userStories;
+    _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
+  }
+
+  void previousUserStory() {}
+
+  void _onPanStart(DragStartDetails details, Story story) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double dx = details.globalPosition.dx;
     if (dx < screenWidth / 3) {
       setState(() {
-        if (_currentIndex - 1 >= 0) {
-          _currentIndex -= 1;
-          _loadStory(story: currentStories![_currentIndex]);
+        if (currentUser != widget.users.first) {
+          _userIndex--;
+          currentUser = widget.users[_userIndex];
+          currentStories = currentUser.userStories;
+          _loadStory(
+              story: currentStories![currentUser.currentStoryGroupIndex]);
         }
       });
     } else if (dx > 2 * screenWidth / 3) {
       setState(() {
-        if (_currentIndex + 1 < currentStories!.length) {
-          _currentIndex += 1;
-          _loadStory(story: currentStories![_currentIndex]);
-        } else {
-          // Out of bounds - loop story
-          // You can also Navigator.of(context).pop() here
-          _currentIndex = 0;
-          _userIndex++;
-          currentUser = widget.users[_userIndex];
-          currentStories = currentUser.userStories;
-          _loadStory(story: currentStories![_currentIndex]);
-        }
+        nextUserStory();
       });
+    }
+  }
+
+  void _onTapDown(TapDownDetails details, Story story) {
+    currentTime = DateTime.now();
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double dx = details.globalPosition.dx;
+    if (story.storyType == StoryType.video) {
+      if (_videoController!.value.isPlaying) {
+        _videoController!.pause();
+        _animController.stop();
+      } else {
+        _videoController!.play();
+        _animController.forward();
+      }
     } else {
-      if (story.storyType == StoryType.video) {
-        if (_videoController!.value.isPlaying) {
-          _videoController!.pause();
-          _animController.stop();
-        } else {
-          _videoController!.play();
-          _animController.forward();
+      _animController.stop();
+    }
+  }
+
+  void _onTapUp(TapUpDetails details, Story story) {
+    _animController.forward();
+
+    Duration tapWaitTime = DateTime.now().difference(currentTime);
+    if (tapWaitTime < const Duration(milliseconds: 500)) {
+      final double screenWidth = MediaQuery.of(context).size.width;
+      final double dx = details.globalPosition.dx;
+      if (dx < screenWidth / 3) {
+        setState(() {
+          if (currentUser.currentStoryGroupIndex - 1 >= 0) {
+            print(currentUser.currentStoryGroupIndex);
+            _currentIndex -= 1;
+            currentUser.currentStoryGroupIndex -= 1;
+            _loadStory(
+                story: currentStories![currentUser.currentStoryGroupIndex]);
+          } else {
+            if (currentUser != widget.users.first) {
+              _userIndex--;
+              currentUser = widget.users[_userIndex];
+              currentStories = currentUser.userStories;
+              _loadStory(
+                  story: currentStories![currentUser.currentStoryGroupIndex]);
+            }
+          }
+        });
+      } else if (dx > 2 * screenWidth / 3) {
+        setState(() {
+          if (currentUser.currentStoryGroupIndex + 1 < currentStories!.length) {
+            currentUser.currentStoryGroupIndex += 1;
+            _loadStory(
+                story: currentStories![currentUser.currentStoryGroupIndex]);
+          } else {
+            nextUserStory();
+          }
+        });
+      } else {
+        if (story.storyType == StoryType.video) {
+          if (_videoController!.value.isPlaying) {
+            _videoController!.pause();
+            _animController.stop();
+          } else {
+            _videoController!.play();
+            _animController.forward();
+          }
         }
       }
     }
@@ -224,7 +282,7 @@ class _StoryScreenState extends State<StoryScreen>
     _animController.reset();
     switch (story.storyType) {
       case StoryType.image:
-        _animController.duration = story.duration;
+        _animController.duration = Duration(seconds: imageDuration);
         _animController.forward();
         break;
       case StoryType.video:
@@ -243,7 +301,7 @@ class _StoryScreenState extends State<StoryScreen>
     }
     if (animateToPage) {
       _pageController.animateToPage(
-        _currentIndex,
+        currentUser.currentStoryGroupIndex,
         duration: const Duration(milliseconds: 1),
         curve: Curves.easeInOut,
       );
