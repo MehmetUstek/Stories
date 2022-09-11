@@ -31,15 +31,15 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: StoryScreen(stories: stories),
+      home: StoryScreen(users: users),
     );
   }
 }
 
 class StoryScreen extends StatefulWidget {
-  final List<Story> stories;
+  final List<User> users;
 
-  const StoryScreen({required this.stories});
+  const StoryScreen({required this.users});
 
   @override
   _StoryScreenState createState() => _StoryScreenState();
@@ -52,6 +52,8 @@ class _StoryScreenState extends State<StoryScreen>
   VideoPlayerController? _videoController;
   ValueNotifier? _pageNotifier;
   int _currentIndex = 0;
+  late List<Story>? currentStories;
+  late User currentUser;
 
   @override
   void initState() {
@@ -59,23 +61,26 @@ class _StoryScreenState extends State<StoryScreen>
     _pageController = PageController();
     _pageNotifier = ValueNotifier(0.0);
     _animController = AnimationController(vsync: this);
+    final User firstUser = widget.users.first;
+    currentUser = firstUser;
+    currentStories = firstUser.userStories;
+    final Story? firstStory = firstUser.userStories?.first;
 
-    final Story firstStory = widget.stories.first;
-    _loadStory(story: firstStory, animateToPage: false);
+    _loadStory(story: firstStory!, animateToPage: false);
 
     _animController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _animController.stop();
         _animController.reset();
         setState(() {
-          if (_currentIndex + 1 < widget.stories.length) {
+          if (_currentIndex + 1 < currentStories!.length) {
             _currentIndex += 1;
-            _loadStory(story: widget.stories[_currentIndex]);
+            _loadStory(story: currentStories![_currentIndex]);
           } else {
             // Out of bounds - loop story
             // You can also Navigator.of(context).pop() here
             _currentIndex = 0;
-            _loadStory(story: widget.stories[_currentIndex]);
+            _loadStory(story: currentStories![_currentIndex]);
           }
         });
       }
@@ -92,51 +97,39 @@ class _StoryScreenState extends State<StoryScreen>
 
   @override
   Widget build(BuildContext context) {
-    final Story story = widget.stories[_currentIndex];
+    final Story story = currentStories![_currentIndex];
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
         onTapDown: (details) => _onTapDown(details, story),
         child: Stack(
           children: <Widget>[
-            CubePageView.builder(
+            PageView.builder(
               controller: _pageController,
-
               // physics: NeverScrollableScrollPhysics(),
-              itemCount: widget.stories.length,
-              itemBuilder: (context, i, pageNotifier) {
-                final Story story = widget.stories[i];
+              itemCount: currentStories!.length,
+              itemBuilder: (context, i) {
+                final Story story = currentStories![i];
                 switch (story.storyType) {
                   case StoryType.image:
-                    return CubeWidget(
-                        centerAligned: true,
-                        index: i,
-                        pageNotifier: pageNotifier,
-                        child: CachedNetworkImage(
-                          imageUrl: story.URL,
-                          fit: BoxFit.cover,
-                        ));
+                    return CachedNetworkImage(
+                      imageUrl: story.URL,
+                      fit: BoxFit.cover,
+                    );
                   case StoryType.video:
                     if (_videoController != null &&
                         _videoController!.value.isInitialized) {
-                      return CubeWidget(
-                        index: i,
-                        pageNotifier: pageNotifier,
-                        child: FittedBox(
-                          fit: BoxFit.cover,
-                          child: SizedBox(
-                            width: _videoController!.value.size.width,
-                            height: _videoController!.value.size.height,
-                            child: VideoPlayer(_videoController!),
-                          ),
+                      return FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _videoController!.value.size.width,
+                          height: _videoController!.value.size.height,
+                          child: VideoPlayer(_videoController!),
                         ),
                       );
                     }
                 }
-                return CubeWidget(
-                    index: i,
-                    pageNotifier: pageNotifier,
-                    child: const SizedBox.shrink());
+                return const SizedBox.shrink();
               },
             ),
             Positioned(
@@ -146,7 +139,7 @@ class _StoryScreenState extends State<StoryScreen>
               child: Column(
                 children: <Widget>[
                   Row(
-                    children: widget.stories
+                    children: currentStories!
                         .asMap()
                         .map((i, e) {
                           return MapEntry(
@@ -166,7 +159,7 @@ class _StoryScreenState extends State<StoryScreen>
                       horizontal: 1.5,
                       vertical: 10.0,
                     ),
-                    child: UserInfo(user: story.user),
+                    child: UserInfo(user: currentUser),
                   ),
                 ],
               ),
@@ -184,19 +177,19 @@ class _StoryScreenState extends State<StoryScreen>
       setState(() {
         if (_currentIndex - 1 >= 0) {
           _currentIndex -= 1;
-          _loadStory(story: widget.stories[_currentIndex]);
+          _loadStory(story: currentStories![_currentIndex]);
         }
       });
     } else if (dx > 2 * screenWidth / 3) {
       setState(() {
-        if (_currentIndex + 1 < widget.stories.length) {
+        if (_currentIndex + 1 < currentStories!.length) {
           _currentIndex += 1;
-          _loadStory(story: widget.stories[_currentIndex]);
+          _loadStory(story: currentStories![_currentIndex]);
         } else {
           // Out of bounds - loop story
           // You can also Navigator.of(context).pop() here
           _currentIndex = 0;
-          _loadStory(story: widget.stories[_currentIndex]);
+          _loadStory(story: currentStories![_currentIndex]);
         }
       });
     } else {
