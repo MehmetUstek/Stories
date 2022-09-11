@@ -53,7 +53,9 @@ class _StoryScreenState extends State<StoryScreen>
   ValueNotifier? _pageNotifier;
   int _currentIndex = 0;
   late List<Story>? currentStories;
+  List<Story>? allStories = <Story>[];
   late User currentUser;
+  int _userIndex = 0;
 
   @override
   void initState() {
@@ -64,6 +66,12 @@ class _StoryScreenState extends State<StoryScreen>
     final User firstUser = widget.users.first;
     currentUser = firstUser;
     currentStories = firstUser.userStories;
+    for (User user in widget.users) {
+      for (Story story in user.userStories!) {
+        allStories?.add(story);
+      }
+    }
+
     final Story? firstStory = firstUser.userStories?.first;
 
     _loadStory(story: firstStory!, animateToPage: false);
@@ -80,6 +88,9 @@ class _StoryScreenState extends State<StoryScreen>
             // Out of bounds - loop story
             // You can also Navigator.of(context).pop() here
             _currentIndex = 0;
+            _userIndex++;
+            currentUser = widget.users[_userIndex];
+            currentStories = currentUser.userStories;
             _loadStory(story: currentStories![_currentIndex]);
           }
         });
@@ -189,6 +200,9 @@ class _StoryScreenState extends State<StoryScreen>
           // Out of bounds - loop story
           // You can also Navigator.of(context).pop() here
           _currentIndex = 0;
+          _userIndex++;
+          currentUser = widget.users[_userIndex];
+          currentStories = currentUser.userStories;
           _loadStory(story: currentStories![_currentIndex]);
         }
       });
