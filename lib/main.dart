@@ -110,13 +110,12 @@ class _StoryScreenState extends State<StoryScreen>
       body: GestureDetector(
         onTapDown: (details) => _onTapDown(details, story),
         onTapUp: (details) => _onTapUp(details, story),
-        // onHorizontalDragDown: (details) => _onDragDown(details, story),
         onPanStart: (details) => _onPanStart(details, story),
         child: Stack(
           children: <Widget>[
             PageView.builder(
               controller: _pageController,
-              physics: NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: currentStories!.length,
               itemBuilder: (context, i) {
                 final Story story = currentStories![i];
@@ -233,7 +232,7 @@ class _StoryScreenState extends State<StoryScreen>
     _animController.forward();
 
     Duration tapWaitTime = DateTime.now().difference(currentTime);
-    if (tapWaitTime < const Duration(milliseconds: 500)) {
+    if (tapWaitTime < const Duration(milliseconds: 300)) {
       final double screenWidth = MediaQuery.of(context).size.width;
       final double dx = details.globalPosition.dx;
       if (dx < screenWidth / 3) {
