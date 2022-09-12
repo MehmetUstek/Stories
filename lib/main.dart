@@ -116,7 +116,7 @@ class _StoryScreenState extends State<StoryScreen>
           children: <Widget>[
             PageView.builder(
               controller: _pageController,
-              // physics: NeverScrollableScrollPhysics(),
+              physics: NeverScrollableScrollPhysics(),
               itemCount: currentStories!.length,
               itemBuilder: (context, i) {
                 final Story story = currentStories![i];
@@ -189,7 +189,12 @@ class _StoryScreenState extends State<StoryScreen>
     _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
   }
 
-  void previousUserStory() {}
+  void previousUserStory() {
+    _userIndex--;
+    currentUser = widget.users[_userIndex];
+    currentStories = currentUser.userStories;
+    _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
+  }
 
   void _onPanStart(DragStartDetails details, Story story) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -197,11 +202,7 @@ class _StoryScreenState extends State<StoryScreen>
     if (dx < screenWidth / 3) {
       setState(() {
         if (currentUser != widget.users.first) {
-          _userIndex--;
-          currentUser = widget.users[_userIndex];
-          currentStories = currentUser.userStories;
-          _loadStory(
-              story: currentStories![currentUser.currentStoryGroupIndex]);
+          previousUserStory();
         }
       });
     } else if (dx > 2 * screenWidth / 3) {
@@ -245,11 +246,7 @@ class _StoryScreenState extends State<StoryScreen>
                 story: currentStories![currentUser.currentStoryGroupIndex]);
           } else {
             if (currentUser != widget.users.first) {
-              _userIndex--;
-              currentUser = widget.users[_userIndex];
-              currentStories = currentUser.userStories;
-              _loadStory(
-                  story: currentStories![currentUser.currentStoryGroupIndex]);
+              previousUserStory();
             }
           }
         });
@@ -263,16 +260,6 @@ class _StoryScreenState extends State<StoryScreen>
             nextUserStory();
           }
         });
-      } else {
-        if (story.storyType == StoryType.video) {
-          if (_videoController!.value.isPlaying) {
-            _videoController!.pause();
-            _animController.stop();
-          } else {
-            _videoController!.play();
-            _animController.forward();
-          }
-        }
       }
     }
   }
