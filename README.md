@@ -1,6 +1,6 @@
 # Stories
 
-Instagram-like stories with cubic transitions using bloc architecture
+Insta-like stories with cubic transitions using bloc architecture
 
 ## Getting Started
 
