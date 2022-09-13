@@ -113,33 +113,53 @@ class _StoryScreenState extends State<StoryScreen>
         onPanStart: (details) => _onPanStart(details, story),
         child: Stack(
           children: <Widget>[
-            PageView.builder(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: currentStories!.length,
-              itemBuilder: (context, i) {
-                final Story story = currentStories![i];
-                switch (story.storyType) {
-                  case StoryType.image:
-                    return CachedNetworkImage(
-                      imageUrl: story.URL,
-                      fit: BoxFit.cover,
-                    );
-                  case StoryType.video:
-                    if (_videoController != null &&
-                        _videoController!.value.isInitialized) {
-                      return FittedBox(
-                        fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: _videoController!.value.size.width,
-                          height: _videoController!.value.size.height,
-                          child: VideoPlayer(_videoController!),
-                        ),
+            SizedBox(
+              height: MediaQuery.of(context).size.height,
+              child: CubePageView.builder(
+                controller: _pageController,
+                // physics: const NeverScrollableScrollPhysics(),
+                itemCount: currentStories!.length,
+
+                itemBuilder: (context, i, notifier) {
+                  print(_pageController.page);
+
+                  final Story story = currentStories![i];
+                  switch (story.storyType) {
+                    case StoryType.image:
+                      return CubeWidget(
+                        index: i,
+                        pageNotifier: notifier,
+                        child: Stack(children: [
+                          CachedNetworkImage(
+                            imageUrl: story.URL,
+                            fit: BoxFit.cover,
+                            height: MediaQuery.of(context).size.height,
+                          ),
+                        ]),
                       );
-                    }
-                }
-                return const SizedBox.shrink();
-              },
+                    case StoryType.video:
+                      if (_videoController != null &&
+                          _videoController!.value.isInitialized) {
+                        return CubeWidget(
+                          index: i,
+                          pageNotifier: notifier,
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: MediaQuery.of(context).size.width,
+                              height: MediaQuery.of(context).size.height,
+                              child: VideoPlayer(_videoController!),
+                            ),
+                          ),
+                        );
+                      }
+                  }
+                  return CubeWidget(
+                      index: i,
+                      pageNotifier: notifier,
+                      child: const SizedBox.shrink());
+                },
+              ),
             ),
             Positioned(
               top: 40.0,
@@ -288,8 +308,8 @@ class _StoryScreenState extends State<StoryScreen>
     if (animateToPage) {
       _pageController.animateToPage(
         currentUser.currentStoryGroupIndex,
-        duration: const Duration(milliseconds: 1),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubicEmphasized,
       );
     }
   }

@@ -2,7 +2,7 @@ import 'package:stories/models/user_model.dart';
 
 import 'models/story_model.dart';
 
-final imageDuration = 5;
+final imageDuration = 1;
 final User user = User(
     username: 'mehmetustekk',
     userIconURL: 'https://wallpapercave.com/wp/AYWg3iu.jpg',
