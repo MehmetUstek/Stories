@@ -9,17 +9,17 @@ final User user = User(
     userStories: [
       Story(
         URL:
+            'https://static.videezy.com/system/resources/previews/000/005/529/original/Reaviling_Sjusj%C3%B8en_Ski_Senter.mp4',
+        storyType: StoryType.video,
+      ),
+      Story(
+        URL:
             'https://images.unsplash.com/photo-1534103362078-d07e750bd0c4?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=634&q=80',
         storyType: StoryType.image,
       ),
       Story(
         URL: 'https://media.giphy.com/media/moyzrwjUIkdNe/giphy.gif',
         storyType: StoryType.image,
-      ),
-      Story(
-        URL:
-            'https://static.videezy.com/system/resources/previews/000/005/529/original/Reaviling_Sjusj%C3%B8en_Ski_Senter.mp4',
-        storyType: StoryType.video,
       ),
     ]);
 final User second_user = User(

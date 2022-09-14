@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cube_transition_plus/cube_transition_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:stories/data.dart';
+import 'package:stories/models/story_model.dart';
+import 'package:stories/story_view.dart';
+import 'package:story/story_page_view/story_page_view.dart';
 import 'package:video_player/video_player.dart';
-
-import 'models/story_model.dart';
 import 'models/user_model.dart';
 
 void main() {
@@ -31,371 +31,187 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: StoryScreen(users: users),
+      home: HomePage(users: users),
     );
   }
 }
 
-class StoryScreen extends StatefulWidget {
+class HomePage extends StatefulWidget {
   final List<User> users;
 
-  const StoryScreen({required this.users});
+  const HomePage({required this.users});
 
   @override
-  _StoryScreenState createState() => _StoryScreenState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _StoryScreenState extends State<StoryScreen>
-    with SingleTickerProviderStateMixin {
-  late PageController _pageController;
-  late AnimationController _animController;
-  VideoPlayerController? _videoController;
-  ValueNotifier? _pageNotifier;
-  int _currentIndex = 0;
-  late List<Story>? currentStories;
-  List<Story>? allStories = <Story>[];
-  late User currentUser;
-  int _userIndex = 0;
-  late DateTime currentTime;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-    _pageNotifier = ValueNotifier(0.0);
-    _animController = AnimationController(vsync: this);
-    final User firstUser = widget.users.first;
-    currentUser = firstUser;
-    currentStories = firstUser.userStories;
-    for (User user in widget.users) {
-      for (Story story in user.userStories!) {
-        allStories?.add(story);
-      }
-    }
-
-    final Story? firstStory = firstUser.userStories?.first;
-
-    _loadStory(story: firstStory!, animateToPage: false);
-
-    _animController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _animController.stop();
-        _animController.reset();
-        setState(() {
-          if (currentUser.currentStoryGroupIndex + 1 < currentStories!.length) {
-            currentUser.currentStoryGroupIndex += 1;
-            _loadStory(
-                story: currentStories![currentUser.currentStoryGroupIndex]);
-          } else {
-            nextUserStory();
-          }
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _pageController.dispose();
-    _animController.dispose();
-    _videoController!.dispose();
-  }
-
+class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
-    final Story story = currentStories![currentUser.currentStoryGroupIndex];
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: GestureDetector(
-        onTapDown: (details) => _onTapDown(details, story),
-        onTapUp: (details) => _onTapUp(details, story),
-        onPanStart: (details) => _onPanStart(details, story),
-        child: Stack(
-          children: <Widget>[
-            PageView.builder(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: currentStories!.length,
-              itemBuilder: (context, i) {
-                final Story story = currentStories![i];
-                switch (story.storyType) {
-                  case StoryType.image:
-                    return CachedNetworkImage(
-                      imageUrl: story.URL,
-                      fit: BoxFit.cover,
-                    );
-                  case StoryType.video:
-                    if (_videoController != null &&
-                        _videoController!.value.isInitialized) {
-                      return FittedBox(
-                        fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: _videoController!.value.size.width,
-                          height: _videoController!.value.size.height,
-                          child: VideoPlayer(_videoController!),
-                        ),
-                      );
-                    }
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-            Positioned(
-              top: 40.0,
-              left: 10.0,
-              right: 10.0,
-              child: Column(
-                children: <Widget>[
-                  Row(
-                    children: currentStories!
-                        .asMap()
-                        .map((i, e) {
-                          return MapEntry(
-                            i,
-                            AnimatedBar(
-                              animController: _animController,
-                              position: i,
-                              currentIndex: currentUser.currentStoryGroupIndex,
-                            ),
-                          );
-                        })
-                        .values
-                        .toList(),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 1.5,
-                      vertical: 10.0,
-                    ),
-                    child: UserInfo(user: currentUser),
-                  ),
-                ],
+      body: Center(
+        child: ElevatedButton(
+          child: Text('show stories'),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return StoryPage();
+                },
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void nextUserStory() {
-    // currentUser.currentStoryGroupIndex = _currentIndex;
-    _currentIndex = 0;
-    _userIndex++;
-    currentUser = widget.users[_userIndex];
-    currentStories = currentUser.userStories;
-    _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
-  }
-
-  void previousUserStory() {
-    _userIndex--;
-    currentUser = widget.users[_userIndex];
-    currentStories = currentUser.userStories;
-    _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
-  }
-
-  void _onPanStart(DragStartDetails details, Story story) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double dx = details.globalPosition.dx;
-    if (dx < screenWidth / 3) {
-      setState(() {
-        if (currentUser != widget.users.first) {
-          previousUserStory();
-        }
-      });
-    } else if (dx > 2 * screenWidth / 3) {
-      setState(() {
-        nextUserStory();
-      });
-    }
-  }
-
-  void _onTapDown(TapDownDetails details, Story story) {
-    currentTime = DateTime.now();
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double dx = details.globalPosition.dx;
-    if (story.storyType == StoryType.video) {
-      if (_videoController!.value.isPlaying) {
-        _videoController!.pause();
-        _animController.stop();
-      } else {
-        _videoController!.play();
-        _animController.forward();
-      }
-    } else {
-      _animController.stop();
-    }
-  }
-
-  void _onTapUp(TapUpDetails details, Story story) {
-    _animController.forward();
-
-    Duration tapWaitTime = DateTime.now().difference(currentTime);
-    if (tapWaitTime < const Duration(milliseconds: 300)) {
-      final double screenWidth = MediaQuery.of(context).size.width;
-      final double dx = details.globalPosition.dx;
-      if (dx < screenWidth / 3) {
-        setState(() {
-          if (currentUser.currentStoryGroupIndex - 1 >= 0) {
-            print(currentUser.currentStoryGroupIndex);
-            _currentIndex -= 1;
-            currentUser.currentStoryGroupIndex -= 1;
-            _loadStory(
-                story: currentStories![currentUser.currentStoryGroupIndex]);
-          } else {
-            if (currentUser != widget.users.first) {
-              previousUserStory();
-            }
-          }
-        });
-      } else if (dx > 2 * screenWidth / 3) {
-        setState(() {
-          if (currentUser.currentStoryGroupIndex + 1 < currentStories!.length) {
-            currentUser.currentStoryGroupIndex += 1;
-            _loadStory(
-                story: currentStories![currentUser.currentStoryGroupIndex]);
-          } else {
-            nextUserStory();
-          }
-        });
-      }
-    }
-  }
-
-  void _loadStory({required Story story, bool animateToPage = true}) {
-    _animController.stop();
-    _animController.reset();
-    switch (story.storyType) {
-      case StoryType.image:
-        _animController.duration = Duration(seconds: imageDuration);
-        _animController.forward();
-        break;
-      case StoryType.video:
-        _videoController?.dispose();
-
-        _videoController = VideoPlayerController.network(story.URL)
-          ..initialize().then((_) {
-            setState(() {});
-            if (_videoController!.value.isInitialized) {
-              _animController.duration = _videoController!.value.duration;
-              _videoController!.play();
-              _animController.forward();
-            }
-          });
-        break;
-    }
-    if (animateToPage) {
-      _pageController.animateToPage(
-        currentUser.currentStoryGroupIndex,
-        duration: const Duration(milliseconds: 1),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-}
-
-class AnimatedBar extends StatelessWidget {
-  final AnimationController animController;
-  final int position;
-  final int currentIndex;
-
-  const AnimatedBar({
-    Key? key,
-    required this.animController,
-    required this.position,
-    required this.currentIndex,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Flexible(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 1.5),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return Stack(
-              children: <Widget>[
-                _buildContainer(
-                  double.infinity,
-                  position < currentIndex
-                      ? Colors.white
-                      : Colors.white.withOpacity(0.5),
-                ),
-                position == currentIndex
-                    ? AnimatedBuilder(
-                        animation: animController,
-                        builder: (context, child) {
-                          return _buildContainer(
-                            constraints.maxWidth * animController.value,
-                            Colors.white,
-                          );
-                        },
-                      )
-                    : const SizedBox.shrink(),
-              ],
             );
           },
         ),
       ),
     );
   }
-
-  Container _buildContainer(double width, Color color) {
-    return Container(
-      height: 5.0,
-      width: width,
-      decoration: BoxDecoration(
-        color: color,
-        border: Border.all(
-          color: Colors.black26,
-          width: 0.8,
-        ),
-        borderRadius: BorderRadius.circular(3.0),
-      ),
-    );
-  }
 }
 
-class UserInfo extends StatelessWidget {
-  final User user;
-
-  const UserInfo({
-    Key? key,
-    required this.user,
-  }) : super(key: key);
+class StoryPage extends StatefulWidget {
+  StoryPage({Key? key}) : super(key: key);
 
   @override
+  _StoryPageState createState() => _StoryPageState();
+}
+
+class _StoryPageState extends State<StoryPage> {
+  late ValueNotifier<IndicatorAnimationCommand> indicatorAnimationController;
+  VideoPlayerController? _videoController;
+
+  @override
+  void initState() {
+    super.initState();
+    indicatorAnimationController = ValueNotifier<IndicatorAnimationCommand>(
+        IndicatorAnimationCommand.resume);
+    Story? story = users.first.userStories?.first;
+    if (story?.storyType == StoryType.video) {
+      _videoController?.dispose();
+
+      _videoController = VideoPlayerController.network(story!.URL)
+        ..initialize().then((_) {
+          setState(() {});
+          if (_videoController!.value.isInitialized) {
+            _videoController!.play();
+          }
+        });
+    }
+  }
+
+  @override
+  void dispose() {
+    indicatorAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged(int details) {}
+  @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        CircleAvatar(
-          radius: 20.0,
-          backgroundColor: Colors.grey[300],
-          backgroundImage: CachedNetworkImageProvider(
-            user.userIconURL,
-          ),
-        ),
-        const SizedBox(width: 10.0),
-        Expanded(
-          child: Text(
-            user.username,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18.0,
-              fontWeight: FontWeight.w600,
+    return Scaffold(
+      body: StoryPageView(
+        initialPage: 0,
+        onPageChanged: (details) => _onPageChanged(details),
+        itemBuilder: (context, pageIndex, storyIndex) {
+          final user = users[pageIndex];
+          final story = user.userStories![storyIndex];
+          Widget content = const SizedBox.shrink();
+          switch (story.storyType) {
+            case StoryType.image:
+              content = Positioned.fill(
+                child: CachedNetworkImage(
+                  imageUrl: story.URL,
+                  fit: BoxFit.cover,
+                ),
+              );
+              break;
+            case StoryType.video:
+              if (_videoController != null &&
+                  _videoController!.value.isInitialized) {
+                content = FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    height: MediaQuery.of(context).size.height,
+                    child: VideoPlayer(_videoController!),
+                  ),
+                );
+              }
+              break;
+            default:
+              content = const SizedBox.shrink();
+          }
+
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: Container(color: Colors.black),
+              ),
+              content,
+              Padding(
+                padding: const EdgeInsets.only(top: 44, left: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      height: 32,
+                      width: 32,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: NetworkImage(user.userIconURL),
+                          fit: BoxFit.cover,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(
+                      width: 8,
+                    ),
+                    Text(
+                      user.username,
+                      style: TextStyle(
+                        fontSize: 17,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+        gestureItemBuilder: (context, pageIndex, storyIndex) {
+          return Stack(children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 32),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  color: Colors.white,
+                  icon: Icon(Icons.close),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
             ),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(
-            Icons.close,
-            size: 30.0,
-            color: Colors.white,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ],
+          ]);
+        },
+        indicatorAnimationController: indicatorAnimationController,
+        initialStoryIndex: (pageIndex) {
+          if (pageIndex == 0) {
+            return 1;
+          }
+          return 0;
+        },
+        pageLength: users.length,
+        storyLength: (int pageIndex) {
+          return users[pageIndex].userStories!.length;
+        },
+        onPageLimitReached: () {
+          Navigator.pop(context);
+        },
+      ),
     );
   }
 }
