@@ -13,21 +13,11 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
       home: StoryScreen(users: users),
@@ -38,7 +28,7 @@ class MyApp extends StatelessWidget {
 class StoryScreen extends StatefulWidget {
   final List<User> users;
 
-  const StoryScreen({required this.users});
+  const StoryScreen({super.key, required this.users});
 
   @override
   _StoryScreenState createState() => _StoryScreenState();
@@ -49,8 +39,6 @@ class _StoryScreenState extends State<StoryScreen>
   late PageController _pageController;
   late AnimationController _animController;
   VideoPlayerController? _videoController;
-  ValueNotifier? _pageNotifier;
-  int _currentIndex = 0;
   late List<Story>? currentStories;
   List<Story>? allStories = <Story>[];
   late User currentUser;
@@ -61,7 +49,6 @@ class _StoryScreenState extends State<StoryScreen>
   void initState() {
     super.initState();
     _pageController = PageController();
-    _pageNotifier = ValueNotifier(0.0);
     _animController = AnimationController(vsync: this);
     final User firstUser = widget.users.first;
     currentUser = firstUser;
@@ -121,7 +108,7 @@ class _StoryScreenState extends State<StoryScreen>
                 switch (story.storyType) {
                   case StoryType.image:
                     return CachedNetworkImage(
-                      imageUrl: story.URL,
+                      imageUrl: story.url,
                       fit: BoxFit.cover,
                     );
                   case StoryType.video:
@@ -179,11 +166,16 @@ class _StoryScreenState extends State<StoryScreen>
   }
 
   void nextUserStory() {
-    if (_userIndex + 1 <= users.length) {
-      _currentIndex = 0;
+    if (_userIndex + 1 < users.length) {
       _userIndex++;
       currentUser = widget.users[_userIndex];
       currentStories = currentUser.userStories;
+      _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
+    } else {
+      _userIndex = 0;
+      currentUser = widget.users[_userIndex];
+      currentStories = currentUser.userStories;
+      currentUser.currentStoryGroupIndex = 0;
       _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
     }
   }
@@ -200,13 +192,13 @@ class _StoryScreenState extends State<StoryScreen>
   void _onPanStart(DragStartDetails details, Story story) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double dx = details.globalPosition.dx;
-    if (dx < screenWidth / 3) {
+    if (dx < screenWidth / 2) {
       setState(() {
         if (currentUser != widget.users.first) {
           previousUserStory();
         }
       });
-    } else if (dx > 2 * screenWidth / 3) {
+    } else if (dx > screenWidth / 2) {
       setState(() {
         nextUserStory();
       });
@@ -239,8 +231,6 @@ class _StoryScreenState extends State<StoryScreen>
       if (dx < screenWidth / 3) {
         setState(() {
           if (currentUser.currentStoryGroupIndex - 1 >= 0) {
-            print(currentUser.currentStoryGroupIndex);
-            _currentIndex -= 1;
             currentUser.currentStoryGroupIndex -= 1;
             _loadStory(
                 story: currentStories![currentUser.currentStoryGroupIndex]);
@@ -273,13 +263,13 @@ class _StoryScreenState extends State<StoryScreen>
     _animController.reset();
     switch (story.storyType) {
       case StoryType.image:
-        _animController.duration = Duration(seconds: imageDuration);
+        _animController.duration = const Duration(seconds: imageDuration);
         _animController.forward();
         break;
       case StoryType.video:
         _videoController?.dispose();
 
-        _videoController = VideoPlayerController.network(story.URL)
+        _videoController = VideoPlayerController.network(story.url)
           ..initialize().then((_) {
             setState(() {});
             if (_videoController!.value.isInitialized) {
