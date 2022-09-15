@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cube_transition_plus/cube_transition_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:stories/data.dart';
 import 'package:video_player/video_player.dart';
@@ -180,19 +179,22 @@ class _StoryScreenState extends State<StoryScreen>
   }
 
   void nextUserStory() {
-    // currentUser.currentStoryGroupIndex = _currentIndex;
-    _currentIndex = 0;
-    _userIndex++;
-    currentUser = widget.users[_userIndex];
-    currentStories = currentUser.userStories;
-    _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
+    if (_userIndex + 1 <= users.length) {
+      _currentIndex = 0;
+      _userIndex++;
+      currentUser = widget.users[_userIndex];
+      currentStories = currentUser.userStories;
+      _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
+    }
   }
 
   void previousUserStory() {
-    _userIndex--;
-    currentUser = widget.users[_userIndex];
-    currentStories = currentUser.userStories;
-    _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
+    if (_userIndex - 1 >= 0) {
+      _userIndex--;
+      currentUser = widget.users[_userIndex];
+      currentStories = currentUser.userStories;
+      _loadStory(story: currentStories![currentUser.currentStoryGroupIndex]);
+    }
   }
 
   void _onPanStart(DragStartDetails details, Story story) {
@@ -213,8 +215,6 @@ class _StoryScreenState extends State<StoryScreen>
 
   void _onTapDown(TapDownDetails details, Story story) {
     currentTime = DateTime.now();
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double dx = details.globalPosition.dx;
     if (story.storyType == StoryType.video) {
       if (_videoController!.value.isPlaying) {
         _videoController!.pause();
@@ -235,6 +235,7 @@ class _StoryScreenState extends State<StoryScreen>
     if (tapWaitTime < const Duration(milliseconds: 300)) {
       final double screenWidth = MediaQuery.of(context).size.width;
       final double dx = details.globalPosition.dx;
+
       if (dx < screenWidth / 3) {
         setState(() {
           if (currentUser.currentStoryGroupIndex - 1 >= 0) {
@@ -259,6 +260,10 @@ class _StoryScreenState extends State<StoryScreen>
             nextUserStory();
           }
         });
+      }
+    } else {
+      if (story.storyType == StoryType.video) {
+        _videoController!.play();
       }
     }
   }
