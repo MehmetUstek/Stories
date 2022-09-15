@@ -165,6 +165,11 @@ class _StoryScreenState extends State<StoryScreen>
     );
   }
 
+  /*
+  // Goes to next Story Group if any other user exists. If not it goes to the first user and continues as a loop.
+  // Designed as a loop in order to avoid exceptions.
+  // Makes changes on _userIndex, currentUser, currentStories global variables.
+   */
   void nextUserStory() {
     if (_userIndex + 1 < users.length) {
       _userIndex++;
@@ -180,6 +185,10 @@ class _StoryScreenState extends State<StoryScreen>
     }
   }
 
+  /*
+  // Goes to previous Story Group if any other user exists.
+  // Makes changes on _userIndex, currentUser, currentStories global variables.
+   */
   void previousUserStory() {
     if (_userIndex - 1 >= 0) {
       _userIndex--;
@@ -189,6 +198,11 @@ class _StoryScreenState extends State<StoryScreen>
     }
   }
 
+  /*
+  // The moment drag movement starts, this function is called by the PageView.
+  // If the drag movement started from the left of the screen, it will go to the previous story group.
+  // If the drag movement started from the right of the screen, it will go to the next story group.
+   */
   void _onPanStart(DragStartDetails details, Story story) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double dx = details.globalPosition.dx;
@@ -205,6 +219,10 @@ class _StoryScreenState extends State<StoryScreen>
     }
   }
 
+  /*
+  // Rest and hold behavior implementation. If the user taps the screen, hold that clicking time.
+  // Immediately stop the animation and video.
+   */
   void _onTapDown(TapDownDetails details, Story story) {
     currentTime = DateTime.now();
     if (story.storyType == StoryType.video) {
@@ -220,6 +238,11 @@ class _StoryScreenState extends State<StoryScreen>
     }
   }
 
+  /*
+  // If the user tapped on screen and hold more than 300 milliseconds, don't do anything since this was a
+  // rest-and-hold state. Otherwise, it was a left and right click. In that case, move to the next story or
+  // next story group based on the current state of the story progression.
+   */
   void _onTapUp(TapUpDetails details, Story story) {
     _animController.forward();
 
@@ -258,6 +281,9 @@ class _StoryScreenState extends State<StoryScreen>
     }
   }
 
+  /*
+  // Handles animationController and videoController events based on the StoryType.
+   */
   void _loadStory({required Story story, bool animateToPage = true}) {
     _animController.stop();
     _animController.reset();
