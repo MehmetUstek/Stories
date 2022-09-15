@@ -15,6 +15,11 @@ To run this project:
 - Instagram-like stories with user-based story groups.
 - Tap and slide features with animations.
 
+## Room for Improvement
+
+- State Management architecture implementation
+- Cube Transitions between different story groups
+
 ### Features
 
 - Transition from one story group to another:
