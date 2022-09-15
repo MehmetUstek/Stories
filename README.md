@@ -1,6 +1,6 @@
 # Stories
 
-Instagram-like stories with cubic transitions
+Instagram-like stories
 
 ## Getting Started
 
